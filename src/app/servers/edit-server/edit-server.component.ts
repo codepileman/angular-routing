@@ -1,5 +1,7 @@
-import { ActivatedRoute, Params } from '@angular/router';
+import { CanComponentDeactivate } from './can-deactivate-guard.service';
+import { ActivatedRoute, Params, Router } from '@angular/router';
 import { Component, OnInit } from '@angular/core';
+import { Observable } from 'rxjs/Observable';
 
 import { ServersService } from '../servers.service';
 
@@ -8,13 +10,14 @@ import { ServersService } from '../servers.service';
   templateUrl: './edit-server.component.html',
   styleUrls: ['./edit-server.component.css']
 })
-export class EditServerComponent implements OnInit {
+export class EditServerComponent implements OnInit, CanComponentDeactivate {
   server: {id: number, name: string, status: string};
   serverName = '';
   serverStatus = '';
   allowedEdit = false;
+  changesSaved = false;
 
-  constructor(private serversService: ServersService, private route: ActivatedRoute) { }
+  constructor(private serversService: ServersService, private route: ActivatedRoute, private router: Router) { }
 
   ngOnInit() {
     console.log(this.route.snapshot.queryParams);
@@ -25,13 +28,41 @@ export class EditServerComponent implements OnInit {
       }
     );
     this.route.fragment.subscribe();
-    this.server = this.serversService.getServer(1);
+    const id = +this.route.snapshot.params['id'];
+    this.server = this.serversService.getServer(id);
     this.serverName = this.server.name;
     this.serverStatus = this.server.status;
   }
 
   onUpdateServer() {
     this.serversService.updateServer(this.server.id, {name: this.serverName, status: this.serverStatus});
+    this.changesSaved = true;
+    this.router.navigate(['../'], {relativeTo: this.route});
   }
 
+  // canDeactivate(): Observable<boolean> | Promise<boolean> | boolean {
+  //   if (!this.allowedEdit){
+  //     return true;
+  //   }
+  //   if ((this.serverName !== this.server.name || this.serverStatus !== this.server.status) && !this.changesSaved){
+  //     return confirm('Do you want to discard the changes?');
+  //   }else {
+  //     return true;
+  //   }
+  // }
+  canDeactivate(): Observable<boolean> | Promise<boolean> | boolean {
+    if (!this.allowedEdit) {
+      console.log('test1')
+      return true;
+    }
+    if ((this.serverName !== this.server.name || this.serverStatus !== this.server.status) && !this.changesSaved) {
+      console.log('test')
+      alert('Do you want to discard the changes?');
+      return true;
+    } else {
+      console.log('test2')
+      return true;
+    }
+  }
 }
+
